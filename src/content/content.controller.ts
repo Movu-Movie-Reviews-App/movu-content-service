@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, Query, ParseEnumPipe, ParseUUIDPipe } from '@nestjs/common';
+import { Controller, ParseEnumPipe, ParseUUIDPipe } from '@nestjs/common';
 import { ContentService } from './content.service';
 import { CreateContentDto } from './dto/create-content.dto';
 import { UpdateContentDto } from './dto/update-content.dto';
@@ -10,11 +10,6 @@ import { MessagePattern, Payload } from '@nestjs/microservices';
 @Controller()
 export class ContentController {
   constructor(private readonly contentService: ContentService) { }
-
-  @MessagePattern('content.create')
-  create(@Payload() createContentDto: CreateContentDto) {
-    return this.contentService.create(createContentDto);
-  }
 
   @MessagePattern('content.findAll')
   findAll(@Payload() query: FindContentDto) {
