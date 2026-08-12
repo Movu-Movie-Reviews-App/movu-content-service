@@ -1,4 +1,7 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { ClientProxy } from '@nestjs/microservices';
+import { firstValueFrom } from 'rxjs';
+import { REVIEW_SERVICE } from 'src/config';
 import { CreateContentDto } from './dto/create-content.dto';
 import { UpdateContentDto } from './dto/update-content.dto';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -16,6 +19,8 @@ export class ContentService {
     @InjectRepository(ContentEntity)
     private readonly contentRepository: Repository<ContentEntity>,
     private readonly genresService: GenresService,
+    @Inject(REVIEW_SERVICE)
+    private readonly reviewClient: ClientProxy,
 
 
   ) { }
@@ -121,47 +126,46 @@ export class ContentService {
 
   }
 
+  /**
+   * Reviews live in review-service, behind its own database, so the ranking cannot
+   * be a SQL join from here. review-service ranks by rating and returns contentIds;
+   * this service hydrates them.
+   */
   async findTopRatedOfTheWeek(findContentDto: FindContentDto) {
 
     const { contentType, page = 1, limit = 4 } = findContentDto;
 
     const since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
 
-    const { count } = await this.weeklyRatedQuery(since, contentType)
-      .select('COUNT(DISTINCT content.id)', 'count')
-      .getRawOne();
+    const { totalItems, ranking } = await firstValueFrom(
+      this.reviewClient.send('reviews.weeklyTopRated', {
+        since: since.toISOString(),
+        page,
+        limit,
+      })
+    );
 
-    const totalItems = Number(count);
-
-    const rankedRows = await this.weeklyRatedQuery(since, contentType)
-      .select('content.id', 'id')
-      .addSelect('AVG(review.rating)', 'weeklyRating')
-      .addSelect('COUNT(review.id)', 'weeklyReviewsCount')
-      .groupBy('content.id')
-      .orderBy('"weeklyRating"', 'DESC')
-      .addOrderBy('"weeklyReviewsCount"', 'DESC')
-      .offset((page - 1) * limit)
-      .limit(limit)
-      .getRawMany();
-
-    const contents = rankedRows.length
+    // ponytail: contentType filters after ranking, so a filtered page can come back
+    // short and totalItems counts every type. Push the type filter into the ranking
+    // (send the type's contentIds along) if that becomes visible in the UI.
+    const contents = ranking.length
       ? await this.contentRepository.find({
-        where: { id: In(rankedRows.map((row) => row.id)) },
+        where: contentType
+          ? { id: In(ranking.map((row) => row.contentId)), type: contentType }
+          : { id: In(ranking.map((row) => row.contentId)) },
         relations: { genres: true }
       })
       : [];
 
     const contentById = new Map(contents.map((content) => [content.id, content]));
 
-
-
     // find() ignores the ranking, so rebuild the order from the ranked rows.
-    const data = rankedRows
-      .filter((row) => contentById.has(row.id))
+    const data = ranking
+      .filter((row) => contentById.has(row.contentId))
       .map((row) => ({
-        ...contentById.get(row.id)!,
-        weeklyRating: Number(row.weeklyRating),
-        weeklyReviewsCount: Number(row.weeklyReviewsCount)
+        ...contentById.get(row.contentId)!,
+        weeklyRating: row.weeklyRating,
+        weeklyReviewsCount: row.weeklyReviewsCount
       }));
 
     return {
@@ -174,19 +178,6 @@ export class ContentService {
       },
     };
 
-  }
-
-  private weeklyRatedQuery(since: Date, contentType?: ContentTypeEnum) {
-
-    const query = this.contentRepository.createQueryBuilder('content')
-      .innerJoin('content.reviews', 'review')
-      .where('review.createdAt >= :since', { since });
-
-    if (contentType) {
-      query.andWhere('content.type = :contentType', { contentType });
-    }
-
-    return query;
   }
 
   async findOne(contentId: string) {

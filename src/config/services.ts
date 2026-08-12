@@ -1,0 +1,2 @@
+
+export const REVIEW_SERVICE = 'REVIEW_SERVICE'

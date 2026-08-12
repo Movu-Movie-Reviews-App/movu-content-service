@@ -6,6 +6,7 @@ import { MovieModule } from './movie/movie.module';
 import { SeriesModule } from './series/series.module';
 import { PersonModule } from './person/person.module';
 import { GenresModule } from './genres/genres.module';
+import { TmdbSyncModule } from './sync/tmdb-sync/tmdb-sync.module';
 
 @Module({
 
@@ -25,6 +26,7 @@ import { GenresModule } from './genres/genres.module';
         SeriesModule,
         PersonModule,
         GenresModule,
+        TmdbSyncModule,
     ],
 
 

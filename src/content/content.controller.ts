@@ -5,7 +5,8 @@ import { UpdateContentDto } from './dto/update-content.dto';
 import { ContentTypeEnum } from 'src/common/enums/content-type.enum';
 import { FindContentDto } from './dto/find-content.dto';
 import { SearchContentDto } from './dto/search-content.dto';
-import { MessagePattern, Payload } from '@nestjs/microservices';
+import { EventPattern, MessagePattern, Payload } from '@nestjs/microservices';
+import { RatingStatsChangedDto } from './dto/rating-stats-changed.dto';
 
 @Controller()
 export class ContentController {
@@ -30,6 +31,15 @@ export class ContentController {
   findOne(@Payload('contentId', ParseUUIDPipe) contentId: string) {
 
     return this.contentService.findOne(contentId)
+  }
+
+  @EventPattern('content.ratingStatsChanged')
+  handleRatingStatsChanged(@Payload() payload: RatingStatsChangedDto) {
+    return this.contentService.updateRatingStats(
+      payload.contentId,
+      payload.averageRating,
+      payload.reviewsCount,
+    );
   }
 
   @MessagePattern('content.findByGenre')

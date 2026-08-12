@@ -6,9 +6,10 @@ import { ContentEntity } from './entities/content.entity';
 import { GenresModule } from 'src/genres/genres.module';
 import { ContentFactoryService } from './content-factory.service';
 import { ContentCreditEntity } from './entities/content-credit';
+import { ReviewClientModule } from 'src/infrastructure/messaging/review-client/review-client.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([ContentEntity, ContentCreditEntity]), GenresModule],
+  imports: [TypeOrmModule.forFeature([ContentEntity, ContentCreditEntity]), GenresModule, ReviewClientModule],
   controllers: [ContentController],
   providers: [ContentService, ContentFactoryService],
   exports: [ContentFactoryService, ContentService]
