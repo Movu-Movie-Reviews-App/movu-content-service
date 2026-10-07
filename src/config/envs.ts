@@ -11,6 +11,7 @@ interface EnvVars {
     CONTENT_DB_NAME: string;
     CONTENT_DB_PORT: number;
     NATS_SERVERS: string[];
+    ENVIRONMENT: string;
 
 
 }
@@ -23,6 +24,7 @@ const envsSchema = Joi.object({
     DB_PASSWORD: joi.string().required(),
     CONTENT_DB_NAME: joi.string().required(),
     NATS_SERVERS: joi.array().items(joi.string()).required(),
+    ENVIRONMENT: joi.string().required(),
 }).unknown(true);
 
 const { error, value } = envsSchema.validate({ ...process.env, NATS_SERVERS: process.env.NATS_SERVERS?.split(',') });
@@ -41,6 +43,7 @@ export const envs = {
     dbPassword: envVars.DB_PASSWORD,
     dbName: envVars.CONTENT_DB_NAME,
     natsServers: envVars.NATS_SERVERS,
+    environment: envVars.ENVIRONMENT,
 };
 
 

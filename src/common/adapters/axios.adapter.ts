@@ -15,7 +15,15 @@ export class AxiosAdapter implements HttpAdapter {
             return data;
         } catch (error) {
 
-            throw new Error('This is an error - Check logs')
+            if (axios.isAxiosError(error)) {
+                const status = error.response?.status;
+                const body = JSON.stringify(error.response?.data);
+                // Never let the api_key reach the logs.
+                const safeUrl = url.replace(/(api_key=)[^&]*/, '$1***');
+                throw new Error(`GET ${safeUrl} failed (${status ?? error.code}): ${body ?? error.message}`)
+            }
+
+            throw error;
         }
     }
 

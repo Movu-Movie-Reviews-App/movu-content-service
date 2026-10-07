@@ -1,8 +1,6 @@
 import { ForbiddenException, Injectable } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 import { DataSource, EntityTarget, ObjectLiteral } from 'typeorm';
 import { TmdbService } from 'src/apis/tmdb/tmdb.service';
-import { MoviesService } from 'src/movies/movies.service';
 import { PaginationDto } from 'src/common/dto/pagination-dto';
 import { Movie } from 'src/common/interfaces/movie.interface';
 import { TmdbSyncPaginationDto } from './dto/tmdb-sync-pagination.dto';
@@ -10,13 +8,11 @@ import { GenresService } from 'src/genres/genres.service';
 import { ContentFactoryService } from 'src/content/content-factory.service';
 import { ContentEntity } from 'src/content/entities/content.entity';
 import { ContentCreditEntity } from 'src/content/entities/content-credit';
-import { MovieEntity } from 'src/movies/entities/movie.entity';
 import { SeriesEntity } from 'src/series/entities/series.entity';
 import { GenreEntity } from 'src/genres/entities/genre.entity';
 import { PersonEntity } from 'src/person/entities/person.entity';
-import { ReviewEntity } from 'src/review/entities/review.entity';
-import { WishlistEntity } from 'src/wishlist/entities/wishlist.entity';
-import { FavoriteEntity } from 'src/favorite/entities/favorite.entity';
+import { MoviesService } from 'src/movie/movie.service';
+import { envs } from 'src/config/envs';
 
 /**
  * Every table wiped by clearSyncedData. Reviews, wishlist and favorites are
@@ -25,11 +21,7 @@ import { FavoriteEntity } from 'src/favorite/entities/favorite.entity';
  */
 const SYNCED_ENTITIES: EntityTarget<ObjectLiteral>[] = [
   ContentCreditEntity,
-  MovieEntity,
   SeriesEntity,
-  ReviewEntity,
-  WishlistEntity,
-  FavoriteEntity,
   ContentEntity,
   PersonEntity,
   GenreEntity,
@@ -44,7 +36,6 @@ export class TmdbSyncService {
     private readonly genresService: GenresService,
     private readonly contentFactory: ContentFactoryService,
     private readonly dataSource: DataSource,
-    private readonly configService: ConfigService,
   ) {
   }
 
@@ -85,7 +76,7 @@ export class TmdbSyncService {
 
   private ensureClearingIsAllowed() {
 
-    const environment = this.configService.get('app.environment');
+    const environment = envs.environment
 
     if (environment === 'prod' || environment === 'production') {
       throw new ForbiddenException('Clearing synced data is disabled in production environments');
